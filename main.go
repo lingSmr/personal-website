@@ -2,25 +2,34 @@ package main
 
 import (
 	"io"
+	"log"
 	"net/http"
 	"os"
 )
 
+const (
+	port = ":8080"
+)
+
 func main() {
+	const op = "main:main"
+	log.Printf("%s:%s", op, "start initialization")
+
 	styleCss := NewServeFile("text/css", "style.css")
+	mux := http.NewServeMux()
 
-	http.Handle("/style.css", styleCss)
-	http.HandleFunc("/video.mp4", VideoHandler)
 	fs := http.FileServer(http.Dir("images"))
-	http.Handle("/images/", http.StripPrefix("/images/", fs))
-
-	// Обрабатываем корневой маршрут
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("/images/", http.StripPrefix("/images/", fs))
+	mux.Handle("/style.css", styleCss)
+	mux.HandleFunc("/video.mp4", VideoHandler)
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		const op = "handler: '/' "
+		log.Printf("%s:%s", op, "someone visited main page")
 		http.ServeFile(w, r, "index.html")
 	})
 
-	// Запускаем сервер на порту 8080
-	http.ListenAndServe(":8080", nil)
+	log.Printf("%s:%s", op, "Server started on port "+port)
+	http.ListenAndServe(port, mux)
 }
 
 func VideoHandler(w http.ResponseWriter, r *http.Request) {
